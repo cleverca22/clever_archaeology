@@ -2,5 +2,7 @@
 ## Title: Clever Archaelogist!
 ## Notes: aids in finding archaelogy spots
 ## SavedVariables: kashi_data
+## Version: 0.03
+## OptionalDeps: TomTom
 core_functions.lua
 kashikoi.lua
