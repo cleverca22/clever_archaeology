@@ -1,0 +1,6 @@
+## Interface: 30300
+## Title: Clever Archaelogist!
+## Notes: aids in finding archaelogy spots
+## SavedVariables: kashi_data
+core_functions.lua
+kashikoi.lua

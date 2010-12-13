@@ -1,0 +1,6 @@
+<Bindings>
+	<Binding name="BINDING_TEST1" header="BINDING_TEST">BindingTest_Test1()</Binding> 
+	<Binding name="CA_1">CA_answer(1)</Binding> 
+	<Binding name="CA_2">CA_answer(2)</Binding> 
+	<Binding name="CA_3">CA_answer(3)</Binding> 
+</Bindings>
