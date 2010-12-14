@@ -23,6 +23,7 @@ local function frame_update()
 	local self,text = {},{}
 	self.x,self.y = GetPlayerMapPosition("player")
 	for key,value in pairs(surveys) do
+		local min,max = min_dist[value.answer],max_dist[value.answer]
 		if value.x == nil then
 			return
 		end
@@ -33,7 +34,7 @@ local function frame_update()
 		elseif max_dist[value.answer] < dist then
 			line = line .. " too far?"
 		end
-		local percent = (min_dist[value.answer] - dist) / (min_dist[value.answer] - max_dist[value.answer]) - 0.5
+		local percent = ((dist - min) / (max - min)) - 0.5 -- should land in the range of -0.5 to 0.5 if your at the right distance
 		local width = widths[value.answer]
 		local x,y = ((width*2) * percent) + (kashi_env.main_frame:GetWidth()/2),-13*key
 		
@@ -248,7 +249,16 @@ local function kashi_init()
 	frame:RegisterEvent("ADDON_LOADED")
 	frame:RegisterForDrag("LeftButton")
 	frame:RegisterEvent("PLAYER_ENTERING_WORLD")
-	frame:RegisterEvent("UNIT_SPELLCAST_SUCCEEDED");
+	frame:RegisterEvent("UNIT_SPELLCAST_SUCCEEDED")
+	frame:RegisterEvent("GUILD_XP_UPDATE")
+	frame:RegisterEvent("ARCHAEOLOGY_CLOSED")
+	frame:RegisterEvent("ARCHAEOLOGY_TOGGLE")
+	frame:RegisterEvent("ARTIFACT_COMPLETE")
+	frame:RegisterEvent("ARTIFACT_DIG_SITE_UPDATED")
+	frame:RegisterEvent("ARTIFACT_HISTORY_READY")
+	frame:RegisterEvent("ARTIFACT_UPDATE")
+	frame:RegisterEvent("CURRENCY_DISPLAY_UPDATE")
+	frame:RegisterEvent("GET_ITEM_INFO_RECEIVED")
 	--frame:RegisterEvent("CHAT_MSG_ADDON")
 	frame:SetMovable(true)
 	--frame:SetClampedToScreen(true)
@@ -297,3 +307,4 @@ local function kashi_init()
 end
 kashi_init()
 print("kashikoi's addon done loading")
+print(GetArchaeologyInfo())
