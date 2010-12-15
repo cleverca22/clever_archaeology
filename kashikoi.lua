@@ -24,12 +24,12 @@ local function distance(a,b)
 	local c1,z1 = GetCurrentMapContinent(),GetCurrentMapZone()
 	c1,z1 = GetCurrentMapAreaID(), GetCurrentMapDungeonLevel()
 	local dist,xdelta,ydelta = Astrolabe:ComputeDistance(c1,z1,a.x,a.y, c1,z1,b.x,b.y)
-	print(a.x.." "..a.y.." "..b.x.." "..b.y.." "..(dist*10).." "..xdelta.." "..ydelta)
+	--print(a.x.." "..a.y.." "..b.x.." "..b.y.." "..(dist*10).." "..xdelta.." "..ydelta)
 	return dist
 	--return math.sqrt(x*x + y*y)
 end
-local min_dist = { 0.001, 0.011, 0.022 }
-local max_dist = { 0.019, 0.039, 0.176 }
+local min_dist = {  5, 40,  80 }
+local max_dist = { 41, 78, 330 }
 local widths = { 25,50,100 }
 local function frame_update()
 	local self,text = {},{}
@@ -141,7 +141,7 @@ local function post_process(new_entry)
 			return
 		end
 		value.dist = distance(new_entry,value)
-		local rounded = math.floor(value.dist * 1000)/1000
+		local rounded = math.floor(value.dist)
 		if kashi_data.dists[value.answer][rounded] == nil then
 			kashi_data.dists[value.answer][rounded] = 1
 		else
