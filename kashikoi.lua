@@ -1,49 +1,70 @@
+local Astrolabe = DongleStub("Astrolabe-1.0")
 local function dump_table(t)
 	for key,value in pairs(t) do
 		print(key .. '=' .. value)
 	end
 end
 local surveys, last_survey = {},{}
+local survey_count = 0
 local function clear_binds()
 	local t = kashi_env.main_frame
 	SetOverrideBinding(t,false,"1")
 	SetOverrideBinding(t,false,"2")
 	SetOverrideBinding(t,false,"3")
 end
-local function distance(a,b)
-	local x = a.x - b.x
-	local y = a.y - b.y
-	return math.sqrt(x*x + y*y)
+local function reset_surveys()
+	surveys = {}
+	last_survey = {}
+	survey_count = 0
+	clear_binds()
 end
-local min_dist = { 0.001, 0.011, 0.024 }
-local max_dist = { 0.012, 0.039, 0.121 }
-local widths = { 10,30,100 }
-local survey_count = 0
+local function distance(a,b)
+	--local x = a.x - b.x
+	--local y = a.y - b.y
+	local c1,z1 = GetCurrentMapContinent(),GetCurrentMapZone()
+	c1,z1 = GetCurrentMapAreaID(), GetCurrentMapDungeonLevel()
+	local dist,xdelta,ydelta = Astrolabe:ComputeDistance(c1,z1,a.x,a.y, c1,z1,b.x,b.y)
+	print(a.x.." "..a.y.." "..b.x.." "..b.y.." "..(dist*10).." "..xdelta.." "..ydelta)
+	return dist
+	--return math.sqrt(x*x + y*y)
+end
+local min_dist = { 0.001, 0.011, 0.022 }
+local max_dist = { 0.019, 0.039, 0.176 }
+local widths = { 25,50,100 }
 local function frame_update()
 	local self,text = {},{}
+	local line
+	local good,bad = 0,0
 	self.x,self.y = GetPlayerMapPosition("player")
 	for key,value in pairs(surveys) do
 		local min,max = min_dist[value.answer],max_dist[value.answer]
+		local range = max - min
 		if value.x == nil then
 			return
 		end
 		local dist = distance(self,value)
-		local line = (math.floor(dist*1000)/1000).." "..value.answer
+		line = dist.." "..value.answer
 		if min_dist[value.answer] > dist then
 			line = line .. " too close to survey"
+			bad = bad + 1
 		elseif max_dist[value.answer] < dist then
 			line = line .. " too far?"
+			bad = bad +1
+		else
+			good = good + 1
 		end
 		local percent = ((dist - min) / (max - min)) - 0.5 -- should land in the range of -0.5 to 0.5 if your at the right distance
 		local width = widths[value.answer]
-		local x,y = ((width*2) * percent) + (kashi_env.main_frame:GetWidth()/2),-13*key
+		local x,y = (percent - 0.5) * width,-13*key
+		line = line .. " " .. (math.floor(percent*1000)/1000) --.." "..min.." "..max .. " "..(math.floor(x*1000)/1000)
+		x = x  + (kashi_env.main_frame:GetWidth()/2)
 		
 
 		value.texture:SetPoint("LEFT",kashi_env.main_frame,x,y)
 		value.texture:SetSize(width,10)
-		line = line .. " " .. x
 		table.insert(text,line)
 	end
+	table.insert(text,"good/bad: "..good.."/"..bad)
 	kashi_env.fs:SetText(table.concat(text,"\n"))
 end
 local update_hooked = false
@@ -162,7 +183,7 @@ local function eventHandler(self,event,...)
 		myprint('entering world')
 		unhook_update()
 		kashi_env.fs:SetText("zone changed")
-		surveys = {}
+		reset_surveys()
 	elseif event == "CHAT_MSG_LOOT" then
 		--myprint("'"..arg1.."'"..arg2.."'"..arg3.."'")
 		local log_event = 0
@@ -191,7 +212,7 @@ local function eventHandler(self,event,...)
 				value.texture:Hide()
 				value.texture = nil
 			end
-			surveys = {}
+			reset_surveys()
 
 			if kashi_data.zones[new_entry.zone] == nil then
 				kashi_data.zones[new_entry.zone] = {}
@@ -204,6 +225,13 @@ local function eventHandler(self,event,...)
 			sanitize_data()
 			print("Clever Archaeologist is fully loaded")
 		end
+	elseif event == "GUILD_XP_UPDATE" then
+		local currentXP, remainingXP, dailyXP, maxDailyXP = UnitGetGuildXP("player");
+		print('guild exp: '..(currentXP/1000)..'/'..(remainingXP/1000)..' '..(dailyXP/1000)..'/'..(maxDailyXP/1000))
+	elseif event == "ZONE_CHANGED_NEW_AREA" then
+		reset_surveys()
+		kashi_env.fs:SetText("zone changed")
+		print(GetZoneText())
 	else
 		print("event handler for event '" .. event .. "'")
 		--print(self,event,arg1,arg2,arg3)
@@ -251,15 +279,16 @@ local function kashi_init()
 	frame:RegisterEvent("PLAYER_ENTERING_WORLD")
 	frame:RegisterEvent("UNIT_SPELLCAST_SUCCEEDED")
 	frame:RegisterEvent("GUILD_XP_UPDATE")
-	frame:RegisterEvent("ARCHAEOLOGY_CLOSED")
-	frame:RegisterEvent("ARCHAEOLOGY_TOGGLE")
-	frame:RegisterEvent("ARTIFACT_COMPLETE")
-	frame:RegisterEvent("ARTIFACT_DIG_SITE_UPDATED")
-	frame:RegisterEvent("ARTIFACT_HISTORY_READY")
-	frame:RegisterEvent("ARTIFACT_UPDATE")
-	frame:RegisterEvent("CURRENCY_DISPLAY_UPDATE")
-	frame:RegisterEvent("GET_ITEM_INFO_RECEIVED")
+	--frame:RegisterEvent("ARCHAEOLOGY_CLOSED")
+	--frame:RegisterEvent("ARCHAEOLOGY_TOGGLE")
+	--frame:RegisterEvent("ARTIFACT_COMPLETE")
+	--frame:RegisterEvent("ARTIFACT_DIG_SITE_UPDATED")
+	--frame:RegisterEvent("ARTIFACT_HISTORY_READY")
+	--frame:RegisterEvent("ARTIFACT_UPDATE")
+	--frame:RegisterEvent("CURRENCY_DISPLAY_UPDATE")
+	--frame:RegisterEvent("GET_ITEM_INFO_RECEIVED")
 	--frame:RegisterEvent("CHAT_MSG_ADDON")
+	frame:RegisterEvent("ZONE_CHANGED_NEW_AREA")
 	frame:SetMovable(true)
 	--frame:SetClampedToScreen(true)
 	frame:SetScript("OnDragStart", function(frame)
@@ -307,4 +336,4 @@ local function kashi_init()
 end
 kashi_init()
 print("kashikoi's addon done loading")
-print(GetArchaeologyInfo())
+--print(GetArchaeologyInfo())
