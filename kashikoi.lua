@@ -34,7 +34,7 @@ local function get_ring(x,y)
 		rings[x] = {}
 	end
 	if rings[x][y] == nil then
-		local t = kashi_env.main_frame:CreateTexture(nil,"BACKGROUND")
+		local t = kashi_env.main_frame:CreateTexture(nil,"ARTWORK")
 		local circle = [[Interface\AddOns\clever_archaelogy\circle.tga]]
 		t:SetTexture(circle)
 		t:SetWidth(200)
@@ -90,6 +90,7 @@ end
 local min_dist = {  5, 40,  80 }
 local max_dist = { 41, 78, 608 }
 local widths = { 25,50,100 }
+local scale = 1
 local function frame_update()
 	local self,text = {},{}
 	local line
@@ -126,10 +127,11 @@ local function frame_update()
 	table.insert(text,"good/bad: "..good.."/"..bad)
 	kashi_env.fs:SetText(table.concat(text,"\n"))
 
+	local scale = 0.5
 	for key,value in pairs(surveys) do
 		local dist,xdelta,ydelta = distance(self,value)
 		for key,ring in pairs(value.rings) do
-			ring:SetPoint("CENTER",xdelta,ydelta)
+			ring:SetPoint("CENTER",xdelta*scale,ydelta*scale)
 		end
 	end
 end
@@ -206,22 +208,23 @@ end
 local textures = {}
 local function show_new_rings(red,green,blue,answer,survey_count)
 	local rings = {}
+	if answer == 3 then return rings end
 	for dist1,count in pairs(kashi_data.dists[answer]) do
 		local ring = get_ring(survey_count,dist1)
-		ring:SetWidth(dist1/2)
-		ring:SetHeight(dist1/2)
-		ring:SetVertextColor(red,green,blue,count/kashi_data.max_count[answer])
+		ring:SetWidth((dist1/1)*scale)
+		ring:SetHeight((dist1/1)*scale)
+		ring:SetVertexColor(red,green,blue,0.5) --count/kashi_data.max_count[answer])
 		ring:Show()
 		table.insert(rings,ring)
 	end
 	return rings
 end
 function CA_answer(answer)
-	clear_binds()
 	if not asking then
 		print("something else went wrong")
 		return
 	end
+	clear_binds()
 	if last_survey.x == nil then
 		print('something went wrong?')
 		return
@@ -303,9 +306,14 @@ local function post_process(new_entry)
 			end
 		end
 	end
-	table.sort(kashi_data.dists[1])
-	table.sort(kashi_data.dists[2])
-	table.sort(kashi_data.dists[3])
+	local function mysort(a,b)
+		if a == nil then return 0 end
+		if b == nil then return 0 end
+		return a < b
+	end
+	table.sort(kashi_data.dists[1],mysort)
+	table.sort(kashi_data.dists[2],mysort)
+	table.sort(kashi_data.dists[3],mysort)
 end
 local function handle_spell_finished(self,event,...)
 	local caster,spell_name,arg3,arg4,spellid = ...
@@ -365,9 +373,12 @@ local function eventHandler(self,event,...)
 			reset_surveys()
 			post_process(new_entry)
 			kashi_env.fs:SetText("item found")
-			for key,value in pairs(surveys) do
+			for key,value in pairs(new_entry.surveys) do
 				value.texture:Hide()
 				value.texture = nil
+				for key2,value2 in pairs(value.rings) do
+					value2:Hide()
+				end
 			end
 
 			if kashi_data.zones[new_entry.zone] == nil then
