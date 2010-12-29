@@ -22,6 +22,7 @@ local function get_search_frame(x,y)
 		--local foo = "Interface\\Glues\\CharacterCreate\\UI-CharacterCreate-Factions.blp"
 		t:SetTexture(foo)
 		t:SetAllPoints(spot)
+		t:SetVertexColor(1,0,0)
 		spot.texture = t
 		search_frames[x][y] = spot
 	end
@@ -58,7 +59,6 @@ local function hide_search_frames()
 	end
 end
 local function clear_binds()
-	asking = false
 	local t = kashi_env.main_frame
 	SetOverrideBinding(t,false,"1")
 	SetOverrideBinding(t,false,"2")
@@ -74,6 +74,7 @@ local function reset_surveys()
 	last_survey = {}
 	survey_count = 0
 	clear_binds()
+	asking = false
 	hide_search_frames()
 	survey_count = 0
 end
@@ -87,54 +88,11 @@ local function distance(a,b)
 	return dist,xdelta,ydelta
 	--return math.sqrt(x*x + y*y)
 end
-local min_dist = {  5, 40,  80 }
-local max_dist = { 41, 78, 608 }
+local min_dist = {  5, 40,  79 }
+local max_dist = { 41, 78, 744 }
 local widths = { 25,50,100 }
 local scale = 1
-local function frame_update()
-	local self,text = {},{}
-	local line
-	local good,bad = 0,0
-	self.x,self.y = GetPlayerMapPosition("player")
-	for key,value in pairs(surveys) do
-		local min,max = min_dist[value.answer],max_dist[value.answer]
-		local range = max - min
-		if value.x == nil then
-			return
-		end
-		local dist = distance(self,value)
-		line = math.floor(dist).." "..value.answer
-		if min_dist[value.answer] > dist then
-			line = line .. " too close to survey"
-			bad = bad + 1
-		elseif max_dist[value.answer] < dist then
-			line = line .. " too far?"
-			bad = bad +1
-		else
-			good = good + 1
-		end
-		local percent = ((dist - min) / (max - min)) - 0.5 -- should land in the range of -0.5 to 0.5 if your at the right distance
-		local width = widths[value.answer]
-		local x,y = (percent - 0.5) * width,-13*key
-		line = line .. " " .. (math.floor(percent*1000)/1000) --.." "..min.." "..max .. " "..(math.floor(x*1000)/1000)
-		x = x  + (kashi_env.main_frame:GetWidth()/2)
-		
-
-		value.texture:SetPoint("LEFT",kashi_env.main_frame,x,y)
-		value.texture:SetSize(width,10)
-		table.insert(text,line)
-	end
-	table.insert(text,"good/bad: "..good.."/"..bad)
-	kashi_env.fs:SetText(table.concat(text,"\n"))
-
-	local scale = 0.5
-	for key,value in pairs(surveys) do
-		local dist,xdelta,ydelta = distance(self,value)
-		for key,ring in pairs(value.rings) do
-			ring:SetPoint("CENTER",xdelta*scale,ydelta*scale)
-		end
-	end
-end
+local count = 0
 local function update_all_icons()
 	hide_search_frames()
 	local spots = 1
@@ -190,7 +148,56 @@ local function update_all_icons()
 			end
 		end
 	end
-	print("did "..spots.." spots")
+	--print("did "..spots.." spots")
+end
+local function frame_update()
+	local self,text = {},{}
+	local line
+	local good,bad = 0,0
+	self.x,self.y = GetPlayerMapPosition("player")
+	for key,value in pairs(surveys) do
+		local min,max = min_dist[value.answer],max_dist[value.answer]
+		local range = max - min
+		if value.x == nil then
+			return
+		end
+		local dist = distance(self,value)
+		line = math.floor(dist).." "..value.answer
+		if min_dist[value.answer] > dist then
+			line = line .. " too close to survey"
+			bad = bad + 1
+		elseif max_dist[value.answer] < dist then
+			line = line .. " too far?"
+			bad = bad +1
+		else
+			good = good + 1
+		end
+		local percent = ((dist - min) / (max - min)) - 0.5 -- should land in the range of -0.5 to 0.5 if your at the right distance
+		local width = widths[value.answer]
+		local x,y = (percent - 0.5) * width,-13*key
+		line = line .. " " .. (math.floor(percent*1000)/1000) --.." "..min.." "..max .. " "..(math.floor(x*1000)/1000)
+		x = x  + (kashi_env.main_frame:GetWidth()/2)
+		
+
+		value.texture:SetPoint("LEFT",kashi_env.main_frame,x,y)
+		value.texture:SetSize(width,10)
+		table.insert(text,line)
+	end
+	table.insert(text,"good/bad: "..good.."/"..bad)
+	kashi_env.fs:SetText(table.concat(text,"\n"))
+
+	local scale = 0.5
+	for key,value in pairs(surveys) do
+		local dist,xdelta,ydelta = distance(self,value)
+		for key,ring in pairs(value.rings) do
+			ring:SetPoint("CENTER",xdelta*scale,ydelta*scale)
+		end
+	end
+	count = count + 1
+	if count > 30 then
+		count = 0
+		update_all_icons()
+	end
 end
 local update_hooked = false
 local function hook_update()
@@ -222,9 +229,11 @@ end
 function CA_answer(answer)
 	if not asking then
 		print("something else went wrong")
+		clear_binds()
 		return
 	end
 	clear_binds()
+	asking = false
 	if last_survey.x == nil then
 		print('something went wrong?')
 		return
@@ -307,30 +316,31 @@ local function post_process(new_entry)
 		end
 	end
 	local function mysort(a,b)
-		if a == nil then return 0 end
-		if b == nil then return 0 end
+		if a == nil then return false end
+		if b == nil then return false end
 		return a < b
 	end
-	table.sort(kashi_data.dists[1],mysort)
-	table.sort(kashi_data.dists[2],mysort)
-	table.sort(kashi_data.dists[3],mysort)
+	--table.sort(kashi_data.dists[1],mysort)
+	--table.sort(kashi_data.dists[2],mysort)
+	--table.sort(kashi_data.dists[3],mysort)
 end
 local function handle_spell_finished(self,event,...)
 	local caster,spell_name,arg3,arg4,spellid = ...
 	if spellid == 80451 and caster == "player" then
 		myprint('surveying')
 		self:Show()
+		asking = true
 		if not InCombatLockdown() then
-			asking = true
 			SetOverrideBinding(self,false,"1","CA_1")
 			SetOverrideBinding(self,false,"2","CA_2")
 			SetOverrideBinding(self,false,"3","CA_3")
 			RaidNotice_AddMessage(RaidBossEmoteFrame, ("hit 1 for green, 2 for yellow, 3 for red"), ChatTypeInfo["RAID_WARNING"])
-			last_survey.x,last_survey.y = GetPlayerMapPosition("player")
 		end
+		last_survey.x,last_survey.y = GetPlayerMapPosition("player")
 	elseif spellid == 73979 then
 		myprint('finding artifact')
 		clear_binds()
+		asking = false
 	elseif spellid == 75543 then
 		RaidNotice_AddMessage(RaidBossEmoteFrame, ("skullcrush over, safe to melee"), ChatTypeInfo["RAID_WARNING"])
 	else
@@ -379,6 +389,7 @@ local function eventHandler(self,event,...)
 				for key2,value2 in pairs(value.rings) do
 					value2:Hide()
 				end
+				value.rings = nil
 			end
 
 			if kashi_data.zones[new_entry.zone] == nil then
@@ -400,6 +411,18 @@ local function eventHandler(self,event,...)
 		reset_surveys()
 		kashi_env.fs:SetText("zone changed")
 		print(GetZoneText())
+	elseif event == "PLAYER_REGEN_DISABLED" then
+		if asking then
+			clear_binds()
+			print("dont answer till out of combat")
+		end
+	elseif event == "PLAYER_REGEN_ENABLED" then
+		if asking then
+			SetOverrideBinding(self,false,"1","CA_1")
+			SetOverrideBinding(self,false,"2","CA_2")
+			SetOverrideBinding(self,false,"3","CA_3")
+			print("ready")
+		end
 	else
 		print("event handler for event '" .. event .. "'")
 		--print(self,event,arg1,arg2,arg3)
