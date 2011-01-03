@@ -93,6 +93,7 @@ local max_dist = { 41, 78, 744 }
 local widths = { 25,50,100 }
 local scale = 1
 local count = 0
+local xoffset,yoffset = 0.003,0.003
 local function update_all_icons()
 	hide_search_frames()
 	local spots = 1
@@ -107,11 +108,10 @@ local function update_all_icons()
 			--spot:Hide()
 		end
 	end
-	local offset = 0.003
 	for x = 0,search_area_width do
 		for y = 0,search_area_height do
 			local spot2 = {}
-			spot2.x,spot2.y = self.x + ((x-(search_area_width/2))*offset),self.y + ((y-(search_area_height/2))*offset)
+			spot2.x,spot2.y = self.x + ((x-(search_area_width/2))*xoffset),self.y + ((y-(search_area_height/2))*yoffset)
 			for key,value in pairs(surveys) do
 				local OK = true
 				local min,max = min_dist[value.answer],max_dist[value.answer]
@@ -140,7 +140,7 @@ local function update_all_icons()
 		for y = 0,search_area_height do
 			local spot = get_search_frame(x,y)
 			local spot2 = {}
-			spot2.x,spot2.y = self.x + ((x-(search_area_width/2))*offset),self.y + ((y-(search_area_height/2))*offset)
+			spot2.x,spot2.y = self.x + ((x-(search_area_width/2))*xoffset),self.y + ((y-(search_area_height/2))*yoffset)
 			if spot.OK then
 				result = Astrolabe:PlaceIconOnMinimap( spot, c1, z1, spot2.x,spot2.y )
 				spot:Show()
@@ -291,8 +291,8 @@ local function sanitize_data()
 	for key1,value1 in pairs(kashi_data.dists) do
 		local max = 0
 		for dist,count in pairs(value1) do
-			print(dist)
-			print(count)
+			--print(dist)
+			--print(count)
 			if count > max then
 				max = count
 			end
@@ -347,6 +347,15 @@ local function handle_spell_finished(self,event,...)
 		--myprint(caster.." "..spell_name.." "..spellid)
 	end
 end
+local function zone_changed()
+	local foo,bar = {},{}
+	foo.x,foo.y = 0,0
+	bar.x,bar.y = 1,1
+	local dist,xdelta,ydelta = distance(foo,bar)
+	xoffset = 50/xdelta
+	yoffset = 50/ydelta
+	print('offsets are '..xoffset..', '..yoffset)
+end
 local function eventHandler(self,event,...)
 	local arg1,arg2,arg3 = ...
 	if event == "UNIT_SPELLCAST_SUCCEEDED" then
@@ -359,6 +368,7 @@ local function eventHandler(self,event,...)
 		unhook_update()
 		kashi_env.fs:SetText("zone changed")
 		reset_surveys()
+		zone_changed()
 	elseif event == "CHAT_MSG_LOOT" then
 		--myprint("'"..arg1.."'"..arg2.."'"..arg3.."'")
 		local log_event = 0
@@ -411,6 +421,7 @@ local function eventHandler(self,event,...)
 		reset_surveys()
 		kashi_env.fs:SetText("zone changed")
 		print(GetZoneText())
+		zone_changed()
 	elseif event == "PLAYER_REGEN_DISABLED" then
 		if asking then
 			clear_binds()
