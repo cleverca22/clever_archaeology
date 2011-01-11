@@ -517,7 +517,7 @@ local function kashi_init()
 	frame:SetHeight(100)
 
 	local t = frame:CreateTexture(nil,"BACKGROUND")
-	local foo = "Interface\\Glues\\CharacterCreate\\UI-CharacterCreate-Factions.blp"
+	local foo = "Interface\\DialogFrame\\UI-DialogBox-Background"
 	--foo = "Interface\\WorldMap\\Stormwind City\\Stormwind City1.blp"
 	t:SetTexture(foo)
 	t:SetAllPoints(frame)
