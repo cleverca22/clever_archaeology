@@ -91,7 +91,7 @@ end
 local min_dist = {  5, 40,  79 }
 local max_dist = { 41, 78, 744 }
 local widths = { 25,50,100 }
-local scale = 1
+local scale = 2
 local count = 0
 local xoffset,yoffset = 0.003,0.003
 local function update_all_icons()
@@ -186,9 +186,10 @@ local function frame_update()
 	table.insert(text,"good/bad: "..good.."/"..bad)
 	kashi_env.fs:SetText(table.concat(text,"\n"))
 
-	local scale = 0.5
+	local scale = 0.25
 	for key,value in pairs(surveys) do
 		local dist,xdelta,ydelta = distance(self,value)
+		xdelta,ydelta = 10,10 -- fudge things, i am always 10x10 yards offset
 		for key,ring in pairs(value.rings) do
 			ring:SetPoint("CENTER",xdelta*scale,ydelta*scale)
 		end
@@ -218,6 +219,7 @@ local function show_new_rings(red,green,blue,answer,survey_count)
 	if answer == 3 then return rings end
 	for dist1,count in pairs(kashi_data.dists[answer]) do
 		local ring = get_ring(survey_count,dist1)
+		dist1 = 14.1
 		ring:SetWidth((dist1/1)*scale)
 		ring:SetHeight((dist1/1)*scale)
 		ring:SetVertexColor(red,green,blue,0.5) --count/kashi_data.max_count[answer])
@@ -299,6 +301,7 @@ local function sanitize_data()
 		end
 		kashi_data.max_count[key1] = max
 	end
+	kashi_data.items = nil
 end
 local function post_process(new_entry)
 	for key,value in pairs(new_entry.surveys) do
@@ -352,8 +355,8 @@ local function zone_changed()
 	foo.x,foo.y = 0,0
 	bar.x,bar.y = 1,1
 	local dist,xdelta,ydelta = distance(foo,bar)
-	xoffset = 50/xdelta
-	yoffset = 50/ydelta
+	xoffset = 10/xdelta
+	yoffset = 10/ydelta
 	print('offsets are '..xoffset..', '..yoffset)
 end
 local function eventHandler(self,event,...)
@@ -438,6 +441,17 @@ local function eventHandler(self,event,...)
 		print("event handler for event '" .. event .. "'")
 		--print(self,event,arg1,arg2,arg3)
 	end
+end
+local function center_spot(frame)
+	local f2 = CreateFrame("Frame",nil,frame)
+	local t = f2:CreateTexture(nil,"ARTWORK")
+	local foo = [[Interface\AddOns\clever_archaelogy\X.tga]]
+	t:SetTexture(foo)
+	t:SetVertexColor(1,0,0)
+	t:SetAllPoints(f2);
+	f2:SetWidth(40)
+	f2:SetHeight(40)
+	f2:SetPoint("CENTER",frame,"CENTER",0,0)
 end
 local function make_resizeable(frame)
 	-- taken from http://forums.worldofwarcraft.com/thread.html?topicId=16903635905&sid=1
@@ -534,6 +548,7 @@ local function kashi_init()
 	frame:EnableMouse()
 	frame:SetResizable(true)
 	make_resizeable(frame)
+	center_spot(frame)
 	frame:Show()
 	--kashi_env.debug_frame:Show()
 	frame:SetScript("OnEvent",eventHandler)
