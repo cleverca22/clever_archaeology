@@ -91,7 +91,7 @@ end
 local min_dist = {  5, 40,  79 }
 local max_dist = { 41, 78, 744 }
 local widths = { 25,50,100 }
-local scale = 2
+local size_scale = 2.35
 local count = 0
 local xoffset,yoffset = 0.003,0.003
 local function update_all_icons()
@@ -186,10 +186,10 @@ local function frame_update()
 	table.insert(text,"good/bad: "..good.."/"..bad)
 	kashi_env.fs:SetText(table.concat(text,"\n"))
 
-	local scale = 0.25
+	local scale = 1
 	for key,value in pairs(surveys) do
 		local dist,xdelta,ydelta = distance(self,value)
-		xdelta,ydelta = 10,10 -- fudge things, i am always 10x10 yards offset
+		--xdelta,ydelta = 20,20 -- fudge things, i am always 10x10 yards offset
 		for key,ring in pairs(value.rings) do
 			ring:SetPoint("CENTER",xdelta*scale,ydelta*scale)
 		end
@@ -219,9 +219,9 @@ local function show_new_rings(red,green,blue,answer,survey_count)
 	if answer == 3 then return rings end
 	for dist1,count in pairs(kashi_data.dists[answer]) do
 		local ring = get_ring(survey_count,dist1)
-		dist1 = 14.1
-		ring:SetWidth((dist1/1)*scale)
-		ring:SetHeight((dist1/1)*scale)
+		--dist1 = 28.2
+		ring:SetWidth((dist1/1)*size_scale)
+		ring:SetHeight((dist1/1)*size_scale)
 		ring:SetVertexColor(red,green,blue,0.5) --count/kashi_data.max_count[answer])
 		ring:Show()
 		table.insert(rings,ring)
