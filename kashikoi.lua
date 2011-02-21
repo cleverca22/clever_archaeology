@@ -190,9 +190,9 @@ local function frame_update()
 	for key,value in pairs(surveys) do
 		local dist,xdelta,ydelta = distance(self,value)
 		--xdelta,ydelta = 20,20 -- fudge things, i am always 10x10 yards offset
-		for key,ring in pairs(value.rings) do
-			ring:SetPoint("CENTER",xdelta*scale,ydelta*scale)
-		end
+		--for key,ring in pairs(value.rings) do
+		--	ring:SetPoint("CENTER",xdelta*scale,ydelta*scale)
+		--end
 	end
 	count = count + 1
 	if count > 30 then
@@ -263,7 +263,7 @@ function CA_answer(answer)
 	last_survey.texture:SetPoint("TOP",kashi_env.main_frame,10,-13*survey_count)
 	last_survey.texture:SetSize(50,10)
 	last_survey.texture:SetTexture(red,green,blue)
-	last_survey.rings = show_new_rings(red,green,blue,answer,survey_count)
+	--last_survey.rings = show_new_rings(red,green,blue,answer,survey_count)
 	survey_count = survey_count + 1
 	
 	hook_update()
@@ -327,6 +327,7 @@ local function post_process(new_entry)
 	--table.sort(kashi_data.dists[2],mysort)
 	--table.sort(kashi_data.dists[3],mysort)
 end
+local log_event = 0
 local function handle_spell_finished(self,event,...)
 	local caster,spell_name,arg3,arg4,spellid = ...
 	if spellid == 80451 and caster == "player" then
@@ -344,6 +345,7 @@ local function handle_spell_finished(self,event,...)
 		myprint('finding artifact')
 		clear_binds()
 		asking = false
+		log_event = 1
 	elseif spellid == 75543 then
 		RaidNotice_AddMessage(RaidBossEmoteFrame, ("skullcrush over, safe to melee"), ChatTypeInfo["RAID_WARNING"])
 	else
@@ -357,7 +359,7 @@ local function zone_changed()
 	local dist,xdelta,ydelta = distance(foo,bar)
 	xoffset = 10/xdelta
 	yoffset = 10/ydelta
-	print('offsets are '..xoffset..', '..yoffset)
+	--print('offsets are '..xoffset..', '..yoffset)
 end
 local function eventHandler(self,event,...)
 	local arg1,arg2,arg3 = ...
@@ -372,17 +374,10 @@ local function eventHandler(self,event,...)
 		kashi_env.fs:SetText("zone changed")
 		reset_surveys()
 		zone_changed()
-	elseif event == "CHAT_MSG_LOOT" then
-		--myprint("'"..arg1.."'"..arg2.."'"..arg3.."'")
-		local log_event = 0
-		if string.find(arg1,"You create") then
-			log_event = 0
-		elseif string.find(arg1,"You receive loot") then
-			log_event = 0
-		elseif string.find(arg1,"You receive currency") then
-			log_event = 1
-		end
+	elseif event == "CURRENCY_DISPLAY_UPDATE" then
+		myprint(event)
 		if log_event == 1 then
+			log_event = 0
 			--local clean_name = arg1:match("|h%[(.-)%]|h")
 			local new_entry = {}
 			new_entry.raw_text = arg1
@@ -399,9 +394,9 @@ local function eventHandler(self,event,...)
 			for key,value in pairs(new_entry.surveys) do
 				value.texture:Hide()
 				value.texture = nil
-				for key2,value2 in pairs(value.rings) do
-					value2:Hide()
-				end
+				--for key2,value2 in pairs(value.rings) do
+				--	value2:Hide()
+				--end
 				value.rings = nil
 			end
 
@@ -489,7 +484,7 @@ end
 local function kashi_init()
 	local frame = CreateFrame("FRAME", "KashiAddonFrame")
 	--frame:RegisterEvent("MINIMAP_PING") -- , unitid,x,y
-	frame:RegisterEvent("CHAT_MSG_LOOT")
+	frame:RegisterEvent("CURRENCY_DISPLAY_UPDATE")
 	frame:RegisterEvent("ADDON_LOADED")
 	frame:RegisterForDrag("LeftButton")
 	frame:RegisterEvent("PLAYER_ENTERING_WORLD")
