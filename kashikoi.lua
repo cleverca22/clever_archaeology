@@ -553,3 +553,21 @@ end
 kashi_init()
 print("kashikoi's addon done loading")
 --print(GetArchaeologyInfo())
+function check_lfg()
+	for i = 300,301 do
+		print('i'..i)
+		for x=1, LFG_ROLE_NUM_SHORTAGE_TYPES do
+			print('x'..x)
+			local eligible, forTank, forHealer, forDamage, itemCount, money, xp = GetLFGRoleShortageRewards(i, x)
+			if (itemCount ~= 0 or money ~= 0 or xp ~= 0) then
+				if (eligible) then print('eligible ') end
+				if (forTank) then print('rewards for tanks') end
+				if (forHealer) then print('reward for heals') end
+				if (forDamage) then print('reward for dps') end
+				print('itemCount '..itemCount);
+				print('money '..money)
+				print('xp '..xp)
+			end
+		end
+	end
+end
