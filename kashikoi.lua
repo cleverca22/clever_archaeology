@@ -413,8 +413,8 @@ local function eventHandler(self,event,...)
 			print("Clever Archaeologist is fully loaded")
 		end
 	elseif event == "GUILD_XP_UPDATE" then
-		local currentXP, remainingXP, dailyXP, maxDailyXP = UnitGetGuildXP("player");
-		print('guild exp: '..(currentXP/1000)..'/'..(remainingXP/1000)..' '..(dailyXP/1000)..'/'..(maxDailyXP/1000))
+		local currentXP, remainingXP = UnitGetGuildXP("player");
+		print('guild exp: '..(currentXP/1000)..'/'..(remainingXP/1000))
 	elseif event == "ZONE_CHANGED_NEW_AREA" then
 		reset_surveys()
 		kashi_env.fs:SetText("zone changed")
