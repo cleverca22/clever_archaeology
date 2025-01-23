@@ -1,4 +1,6 @@
-local Astrolabe = DongleStub("Astrolabe-1.0")
+local HBD = LibStub("HereBeDragons-2.0")
+local Pins = LibStub("HereBeDragons-Pins-2.0")
+
 local function dump_table(t)
 	for key,value in pairs(t) do
 		print(key .. '=' .. value)
@@ -46,17 +48,17 @@ local function get_ring(x,y)
 	return rings[x][y]
 end
 local function hide_search_frames()
-	local x,y
-	for x = 0,search_area_width do
-		for y = 0,search_area_height do
-			local spot = get_search_frame(x,y)
-			if spot.placed then
-					result = Astrolabe:RemoveIconFromMinimap( search_frames[x][y] )
-					search_frames[x][y].placed = false
-			end
-			search_frames[x][y]:Hide()
-		end
-	end
+  local x,y
+  for x = 0,search_area_width do
+    for y = 0,search_area_height do
+      local spot = get_search_frame(x,y)
+      if spot.placed then
+        Pins:RemoveMinimapIcon(search_frames[x][y], search_frames[x][y])
+        search_frames[x][y].placed = false
+      end
+      search_frames[x][y]:Hide()
+    end
+  end
 end
 local function clear_binds()
 	local t = kashi_env.main_frame
@@ -79,14 +81,12 @@ local function reset_surveys()
 	survey_count = 0
 end
 local function distance(a,b)
-	--local x = a.x - b.x
-	--local y = a.y - b.y
-	local c1,z1 = GetCurrentMapContinent(),GetCurrentMapZone()
-	c1,z1 = GetCurrentMapAreaID(), GetCurrentMapDungeonLevel()
-	local dist,xdelta,ydelta = Astrolabe:ComputeDistance(c1,z1,a.x,a.y, c1,z1,b.x,b.y)
-	--print(a.x.." "..a.y.." "..b.x.." "..b.y.." "..(dist*10).." "..xdelta.." "..ydelta)
-	return dist,xdelta,ydelta
-	--return math.sqrt(x*x + y*y)
+  --local x = a.x - b.x
+  --local y = a.y - b.y
+  local dist,xdelta,ydelta = HBD:GetZoneDistance(a.zone, a.x, a.y,  b.zone, b.x, b.y)
+  --print(a.x.." "..a.y.." "..b.x.." "..b.y.." "..(dist*10).." "..xdelta.." "..ydelta)
+  return dist,xdelta,ydelta
+  --return math.sqrt(x*x + y*y)
 end
 local min_dist = {  5, 40,  79 }
 local max_dist = { 41, 78, 744 }
@@ -95,110 +95,119 @@ local size_scale = 2.35
 local count = 0
 local xoffset,yoffset = 0.003,0.003
 local function update_all_icons()
-	hide_search_frames()
-	local spots = 1
-	local self = {}
-	local x,y
-	local c1,z1 = GetCurrentMapAreaID(), GetCurrentMapDungeonLevel()
-	self.x,self.y = GetPlayerMapPosition("player")
-	for x = 0,search_area_width do
-		for y = 0,search_area_height do
-			local spot = get_search_frame(x,y)
-			spot.OK = true
-			--spot:Hide()
-		end
-	end
-	for x = 0,search_area_width do
-		for y = 0,search_area_height do
-			local spot2 = {}
-			spot2.x,spot2.y = self.x + ((x-(search_area_width/2))*xoffset),self.y + ((y-(search_area_height/2))*yoffset)
-			for key,value in pairs(surveys) do
-				local OK = true
-				local min,max = min_dist[value.answer],max_dist[value.answer]
-				local dist = distance(spot2,value)
-				if min > dist then
-					OK = false
-				elseif max < dist then
-					OK = false
-				else
-					OK = true
-				end
-				local spot = get_search_frame(x,y)
-				if OK == false then
-					spot.OK = false
-					if spot.placed then
-						result = Astrolabe:RemoveIconFromMinimap( spot )
-						spot.placed = false
-					end
-					spot:Hide()
-				end
-				spots = spots + 1
-			end
-		end
-	end
-	for x = 0,search_area_width do
-		for y = 0,search_area_height do
-			local spot = get_search_frame(x,y)
-			local spot2 = {}
-			spot2.x,spot2.y = self.x + ((x-(search_area_width/2))*xoffset),self.y + ((y-(search_area_height/2))*yoffset)
-			if spot.OK then
-				result = Astrolabe:PlaceIconOnMinimap( spot, c1, z1, spot2.x,spot2.y )
-				spot:Show()
-				spot.placed = true
-			end
-		end
-	end
-	--print("did "..spots.." spots")
+  hide_search_frames()
+  local spots = 1
+  local self = {}
+  local x,y
+
+  --local c1,z1 = GetCurrentMapAreaID(), GetCurrentMapDungeonLevel()
+  --self.x,self.y = GetPlayerMapPosition("player")
+  local mapid,maptype = HBD:GetPlayerZone()
+  local pos = C_Map.GetPlayerMapPosition(mapid, "player")
+  self.x, self.y = pos:GetXY()
+
+  for x = 0,search_area_width do
+    for y = 0,search_area_height do
+      local spot = get_search_frame(x,y)
+      spot.OK = true
+      --spot:Hide()
+    end
+  end
+  for x = 0,search_area_width do
+          for y = 0,search_area_height do
+                  local spot2 = {}
+                  spot2.x,spot2.y = self.x + ((x-(search_area_width/2))*xoffset),self.y + ((y-(search_area_height/2))*yoffset)
+                  spot2.zone = mapid
+                  for key,value in pairs(surveys) do
+                          local OK = true
+                          local min,max = min_dist[value.answer],max_dist[value.answer]
+                          local dist = distance(spot2,value)
+                          if min > dist then
+                                  OK = false
+                          elseif max < dist then
+                                  OK = false
+                          else
+                                  OK = true
+                          end
+                          local spot = get_search_frame(x,y)
+                          if OK == false then
+                                  spot.OK = false
+                                  if spot.placed then
+                                          result = Astrolabe:RemoveIconFromMinimap( spot )
+                                          spot.placed = false
+                                  end
+                                  spot:Hide()
+                          end
+                          spots = spots + 1
+                  end
+          end
+  end
+  for x = 0,search_area_width do
+          for y = 0,search_area_height do
+                  local spot = get_search_frame(x,y)
+                  local spot2 = {}
+                  spot2.x,spot2.y = self.x + ((x-(search_area_width/2))*xoffset),self.y + ((y-(search_area_height/2))*yoffset)
+                  if spot.OK then
+                          result = Pins:AddMinimapIconMap(spot, spot, mapid, spot2.x, spot2.y, false, true)
+                          spot:Show()
+                          spot.placed = true
+                  end
+          end
+  end
+  --print("did "..spots.." spots")
 end
 local function frame_update()
-	local self,text = {},{}
-	local line
-	local good,bad = 0,0
-	self.x,self.y = GetPlayerMapPosition("player")
-	for key,value in pairs(surveys) do
-		local min,max = min_dist[value.answer],max_dist[value.answer]
-		local range = max - min
-		if value.x == nil then
-			return
-		end
-		local dist = distance(self,value)
-		line = math.floor(dist).." "..value.answer
-		if min_dist[value.answer] > dist then
-			line = line .. " too close to survey"
-			bad = bad + 1
-		elseif max_dist[value.answer] < dist then
-			line = line .. " too far?"
-			bad = bad +1
-		else
-			good = good + 1
-		end
-		local percent = ((dist - min) / (max - min)) - 0.5 -- should land in the range of -0.5 to 0.5 if your at the right distance
-		local width = widths[value.answer]
-		local x,y = (percent - 0.5) * width,-13*key
-		line = line .. " " .. (math.floor(percent*1000)/1000) --.." "..min.." "..max .. " "..(math.floor(x*1000)/1000)
-		x = x  + (kashi_env.main_frame:GetWidth()/2)
-		
+  local self,text = {},{}
+  local line
+  local good,bad = 0,0
+  local map = C_Map.GetBestMapForUnit("player")
+  local pos = C_Map.GetPlayerMapPosition(map, "player")
+  self.x,self.y = pos:GetXY()
+  local mapid,maptype = HBD:GetPlayerZone()
+  self.zone = mapid
+  for key,value in pairs(surveys) do
+    local min,max = min_dist[value.answer],max_dist[value.answer]
+    local range = max - min
+    if value.x == nil then
+            return
+    end
+    local dist = distance(self,value)
+    line = math.floor(dist).." "..value.answer
+    if min_dist[value.answer] > dist then
+            line = line .. " too close to survey"
+            bad = bad + 1
+    elseif max_dist[value.answer] < dist then
+            line = line .. " too far?"
+            bad = bad +1
+    else
+            good = good + 1
+    end
+    local percent = ((dist - min) / (max - min)) - 0.5 -- should land in the range of -0.5 to 0.5 if your at the right distance
+    local width = widths[value.answer]
+    local x,y = (percent - 0.5) * width,-13*key
+    line = line .. " " .. (math.floor(percent*1000)/1000) --.." "..min.." "..max .. " "..(math.floor(x*1000)/1000)
+    x = x  + (kashi_env.main_frame:GetWidth()/2)
 
-		value.texture:SetPoint("LEFT",kashi_env.main_frame,x,y)
-		value.texture:SetSize(width,10)
-		table.insert(text,line)
-	end
-	table.insert(text,"good/bad: "..good.."/"..bad)
-	kashi_env.fs:SetText(table.concat(text,"\n"))
+    value.texture:SetPoint("LEFT",kashi_env.main_frame,x,y)
+    value.texture:SetSize(width,10)
+    table.insert(text,line)
+  end
+  table.insert(text,"good/bad: "..good.."/"..bad)
+  kashi_env.fs:SetText(table.concat(text,"\n"))
 
-	local scale = 1
-	for key,value in pairs(surveys) do
-		local dist,xdelta,ydelta = distance(self,value)
-		--xdelta,ydelta = 20,20 -- fudge things, i am always 10x10 yards offset
-		--for key,ring in pairs(value.rings) do
-		--	ring:SetPoint("CENTER",xdelta*scale,ydelta*scale)
-		--end
-	end
-	count = count + 1
-	if count > 30 then
-		count = 0
-		update_all_icons()
-	end
+  local scale = 1
+  for key,value in pairs(surveys) do
+          local dist,xdelta,ydelta = distance(self,value)
+          --xdelta,ydelta = 20,20 -- fudge things, i am always 10x10 yards offset
+          --for key,ring in pairs(value.rings) do
+          --	ring:SetPoint("CENTER",xdelta*scale,ydelta*scale)
+          --end
+  end
+  count = count + 1
+  if count > 30 then
+          count = 0
+          update_all_icons()
+  end
 end
 local update_hooked = false
 local function hook_update()
@@ -329,113 +338,128 @@ local function post_process(new_entry)
 end
 local log_event = 0
 local function handle_spell_finished(self,event,...)
-	local caster,spell_name,arg3,arg4,spellid = ...
-	if spellid == 80451 and caster == "player" then
-		myprint('surveying')
-		self:Show()
-		asking = true
-		if not InCombatLockdown() then
-			SetOverrideBinding(self,false,"1","CA_1")
-			SetOverrideBinding(self,false,"2","CA_2")
-			SetOverrideBinding(self,false,"3","CA_3")
-			RaidNotice_AddMessage(RaidBossEmoteFrame, ("hit 1 for green, 2 for yellow, 3 for red"), ChatTypeInfo["RAID_WARNING"])
-		end
-		last_survey.x,last_survey.y = GetPlayerMapPosition("player")
-	elseif spellid == 73979 then
-		myprint('finding artifact')
-		clear_binds()
-		asking = false
-		log_event = 1
-	elseif spellid == 75543 then
-		RaidNotice_AddMessage(RaidBossEmoteFrame, ("skullcrush over, safe to melee"), ChatTypeInfo["RAID_WARNING"])
-	else
-		--myprint(caster.." "..spell_name.." "..spellid)
-	end
+  local caster, castuuid, spellid = ...
+  if spellid == 80451 and caster == "player" then
+    myprint('surveying')
+    self:Show()
+    local map = C_Map.GetBestMapForUnit("player")
+    print(map)
+    local pos = C_Map.GetPlayerMapPosition(map, "player")
+    print(pos:GetXY())
+    last_survey.x,last_survey.y = pos:GetXY()
+    local mapid,maptype = HBD:GetPlayerZone()
+    last_survey.zone = mapid
+    asking = true
+    if not InCombatLockdown() then
+      SetOverrideBinding(self,false,"1","CA_1")
+      SetOverrideBinding(self,false,"2","CA_2")
+      SetOverrideBinding(self,false,"3","CA_3")
+      RaidNotice_AddMessage(RaidBossEmoteFrame, ("hit 1 for green, 2 for yellow, 3 for red"), ChatTypeInfo["RAID_WARNING"])
+    end
+  elseif spellid == 73979 then
+    myprint('finding artifact')
+    clear_binds()
+    asking = false
+    log_event = 1
+  elseif spellid == 75543 then
+    RaidNotice_AddMessage(RaidBossEmoteFrame, ("skullcrush over, safe to melee"), ChatTypeInfo["RAID_WARNING"])
+  else
+    --myprint(caster.." "..spell_name.." "..spellid)
+  end
 end
 local function zone_changed()
-	local foo,bar = {},{}
-	foo.x,foo.y = 0,0
-	bar.x,bar.y = 1,1
-	local dist,xdelta,ydelta = distance(foo,bar)
-	xoffset = 10/xdelta
-	yoffset = 10/ydelta
-	--print('offsets are '..xoffset..', '..yoffset)
+  local mapid,maptype = HBD:GetPlayerZone()
+  local foo,bar = {},{}
+  foo.x,foo.y = 0,0
+  bar.x,bar.y = 1,1
+
+  print(HBD:GetPlayerZone())
+
+  foo.zone = mapid
+  bar.zone = mapid
+  local dist,xdelta,ydelta = distance(foo,bar)
+  xoffset = 10/xdelta
+  yoffset = 10/ydelta
+  print('offsets are '..xoffset..', '..yoffset)
 end
 local function eventHandler(self,event,...)
-	local arg1,arg2,arg3 = ...
-	if event == "UNIT_SPELLCAST_SUCCEEDED" then
-		handle_spell_finished(self,event,...)
-	elseif event == "CHAT_MSG_ADDON" then
-	elseif event == "PLAYER_ENTERING_WORLD" then
-		self:SetPoint("CENTER",0,0)
-		self:Show()
-		myprint('entering world')
-		unhook_update()
-		kashi_env.fs:SetText("zone changed")
-		reset_surveys()
-		zone_changed()
-	elseif event == "CURRENCY_DISPLAY_UPDATE" then
-		myprint(event)
-		if log_event == 1 then
-			log_event = 0
-			--local clean_name = arg1:match("|h%[(.-)%]|h")
-			local new_entry = {}
-			new_entry.raw_text = arg1
-			--new_entry.text = clean_name
-			new_entry.x,new_entry.y = GetPlayerMapPosition("player")
-			new_entry.zone = GetZoneText()
-			new_entry.subzone = GetSubZoneText()
-			new_entry.surveys = surveys
-			--sanitize_data()
-			unhook_update()
-			reset_surveys()
-			post_process(new_entry)
-			kashi_env.fs:SetText("item found")
-			for key,value in pairs(new_entry.surveys) do
-				value.texture:Hide()
-				value.texture = nil
-				--for key2,value2 in pairs(value.rings) do
-				--	value2:Hide()
-				--end
-				value.rings = nil
-			end
+  local arg1,arg2,arg3 = ...
+  if event == "UNIT_SPELLCAST_SUCCEEDED" then
+    handle_spell_finished(self,event,...)
+  elseif event == "CHAT_MSG_ADDON" then
+  elseif event == "PLAYER_ENTERING_WORLD" then
+    self:SetPoint("CENTER",0,0)
+    self:Show()
+    myprint('entering world')
+    unhook_update()
+    kashi_env.fs:SetText("zone changed")
+    reset_surveys()
+    --zone_changed()
+  elseif event == "CURRENCY_DISPLAY_UPDATE" then
+    myprint(event)
+    if log_event == 1 then
+      log_event = 0
+      --local clean_name = arg1:match("|h%[(.-)%]|h")
+      local new_entry = {}
+      new_entry.raw_text = arg1
+      --new_entry.text = clean_name
+      local map = C_Map.GetBestMapForUnit("player")
+      local mapid,maptype = HBD:GetPlayerZone()
+      local pos = C_Map.GetPlayerMapPosition(map, "player")
+      new_entry.x,new_entry.y = pos:GetXY()
+      new_entry.zone = mapid
+      new_entry.subzone = GetSubZoneText()
+      new_entry.surveys = surveys
+      --sanitize_data()
+      unhook_update()
+      reset_surveys()
+      post_process(new_entry)
+      kashi_env.fs:SetText("item found")
+      for key,value in pairs(new_entry.surveys) do
+              value.texture:Hide()
+              value.texture = nil
+              --for key2,value2 in pairs(value.rings) do
+              --	value2:Hide()
+              --end
+              value.rings = nil
+      end
 
-			if kashi_data.zones[new_entry.zone] == nil then
-				kashi_data.zones[new_entry.zone] = {}
-			end
-			table.insert(kashi_data.zones[new_entry.zone],new_entry)
-			--myprint("logged creation of '"..clean_name.."'")
-			self:Hide()
-		end
-	elseif event == "ADDON_LOADED" then
-		if arg1 == "clever_archaelogy" then
-			sanitize_data()
-			print("Clever Archaeologist is fully loaded")
-		end
-	elseif event == "GUILD_XP_UPDATE" then
-		local currentXP, remainingXP = UnitGetGuildXP("player");
-		print('guild exp: '..(currentXP/1000)..'/'..(remainingXP/1000))
-	elseif event == "ZONE_CHANGED_NEW_AREA" then
-		reset_surveys()
-		kashi_env.fs:SetText("zone changed")
-		print(GetZoneText())
-		zone_changed()
-	elseif event == "PLAYER_REGEN_DISABLED" then
-		if asking then
-			clear_binds()
-			print("dont answer till out of combat")
-		end
-	elseif event == "PLAYER_REGEN_ENABLED" then
-		if asking then
-			SetOverrideBinding(self,false,"1","CA_1")
-			SetOverrideBinding(self,false,"2","CA_2")
-			SetOverrideBinding(self,false,"3","CA_3")
-			print("ready")
-		end
-	else
-		print("event handler for event '" .. event .. "'")
-		--print(self,event,arg1,arg2,arg3)
-	end
+      if kashi_data.zones[new_entry.zone] == nil then
+              kashi_data.zones[new_entry.zone] = {}
+      end
+      table.insert(kashi_data.zones[new_entry.zone],new_entry)
+      --myprint("logged creation of '"..clean_name.."'")
+      self:Hide()
+    end
+  elseif event == "ADDON_LOADED" then
+    if arg1 == "clever_archaelogy" then
+      sanitize_data()
+      print("Clever Archaeologist is fully loaded")
+    end
+  elseif event == "GUILD_XP_UPDATE" then
+          local currentXP, remainingXP = UnitGetGuildXP("player");
+          print('guild exp: '..(currentXP/1000)..'/'..(remainingXP/1000))
+  elseif event == "ZONE_CHANGED_NEW_AREA" then
+          reset_surveys()
+          kashi_env.fs:SetText("zone changed")
+          print(GetZoneText())
+          zone_changed()
+  elseif event == "PLAYER_REGEN_DISABLED" then
+          if asking then
+                  clear_binds()
+                  print("dont answer till out of combat")
+          end
+  elseif event == "PLAYER_REGEN_ENABLED" then
+          if asking then
+                  SetOverrideBinding(self,false,"1","CA_1")
+                  SetOverrideBinding(self,false,"2","CA_2")
+                  SetOverrideBinding(self,false,"3","CA_3")
+                  print("ready")
+          end
+  else
+          print("event handler for event '" .. event .. "'")
+          --print(self,event,arg1,arg2,arg3)
+  end
 end
 local function center_spot(frame)
 	local f2 = CreateFrame("Frame",nil,frame)
@@ -482,73 +506,78 @@ local function make_resizeable(frame)
 		end) 
 end
 local function kashi_init()
-	local frame = CreateFrame("FRAME", "KashiAddonFrame")
-	--frame:RegisterEvent("MINIMAP_PING") -- , unitid,x,y
-	frame:RegisterEvent("CURRENCY_DISPLAY_UPDATE")
-	frame:RegisterEvent("ADDON_LOADED")
-	frame:RegisterForDrag("LeftButton")
-	frame:RegisterEvent("PLAYER_ENTERING_WORLD")
-	frame:RegisterEvent("UNIT_SPELLCAST_SUCCEEDED")
-	frame:RegisterEvent("GUILD_XP_UPDATE")
-	--frame:RegisterEvent("ARCHAEOLOGY_CLOSED")
-	--frame:RegisterEvent("ARCHAEOLOGY_TOGGLE")
-	--frame:RegisterEvent("ARTIFACT_COMPLETE")
-	--frame:RegisterEvent("ARTIFACT_DIG_SITE_UPDATED")
-	--frame:RegisterEvent("ARTIFACT_HISTORY_READY")
-	--frame:RegisterEvent("ARTIFACT_UPDATE")
-	--frame:RegisterEvent("CURRENCY_DISPLAY_UPDATE")
-	--frame:RegisterEvent("GET_ITEM_INFO_RECEIVED")
-	--frame:RegisterEvent("CHAT_MSG_ADDON")
-	frame:RegisterEvent("ZONE_CHANGED_NEW_AREA")
-	frame:RegisterEvent("PLAYER_ENTER_COMBAT") -- might not work
-	frame:RegisterEvent("PLAYER_LEAVE_COMBAT")
-	frame:RegisterEvent("PLAYER_REGEN_DISABLED")
-	frame:RegisterEvent("PLAYER_REGEN_ENABLED")
-	frame:SetMovable(true)
-	--frame:SetClampedToScreen(true)
-	frame:SetScript("OnDragStart", function(frame)
-			frame:StartMoving()
-	end)
-	frame:SetScript("OnDragStop", function(frame)
-			frame:StopMovingOrSizing()
-	end)
-	kashi_env = {}
-	kashi_env.main_frame = frame
-	--kashi_env.debug_frame = CreateFrame("ScrollingMessageFrame")
-	--kashi_env.debug_frame:SetAllPoints()
-	--kashi_env.debug_frame:SetPoint("CENTER",0,0)
-	--kashi_env.debug_frame:SetWidth(50)
-	--kashi_env.debug_frame:SetHeight(50)
-	--kashi_env.debug_frame:SetMaxLines(8)
+  print("kashi init start")
+  local frame = CreateFrame("FRAME", "KashiAddonFrame")
+  print("kashi init 3")
+  --frame:RegisterEvent("MINIMAP_PING") -- , unitid,x,y
+  frame:RegisterEvent("CURRENCY_DISPLAY_UPDATE")
+  print("kashi init 6")
+  frame:RegisterEvent("ADDON_LOADED")
+  print("kashi init 8")
+  frame:RegisterForDrag("LeftButton")
+  frame:RegisterEvent("PLAYER_ENTERING_WORLD")
+  frame:RegisterEvent("UNIT_SPELLCAST_SUCCEEDED")
+  --frame:RegisterEvent("GUILD_XP_UPDATE")
+  --frame:RegisterEvent("ARCHAEOLOGY_CLOSED")
+  --frame:RegisterEvent("ARCHAEOLOGY_TOGGLE")
+  --frame:RegisterEvent("ARTIFACT_COMPLETE")
+  --frame:RegisterEvent("ARTIFACT_DIG_SITE_UPDATED")
+  --frame:RegisterEvent("ARTIFACT_HISTORY_READY")
+  --frame:RegisterEvent("ARTIFACT_UPDATE")
+  --frame:RegisterEvent("CURRENCY_DISPLAY_UPDATE")
+  --frame:RegisterEvent("GET_ITEM_INFO_RECEIVED")
+  --frame:RegisterEvent("CHAT_MSG_ADDON")
+  frame:RegisterEvent("ZONE_CHANGED_NEW_AREA")
+  frame:RegisterEvent("PLAYER_ENTER_COMBAT") -- might not work
+  frame:RegisterEvent("PLAYER_LEAVE_COMBAT")
+  frame:RegisterEvent("PLAYER_REGEN_DISABLED")
+  frame:RegisterEvent("PLAYER_REGEN_ENABLED")
+  frame:SetMovable(true)
+  --frame:SetMouseClickEnabled(true)
+  --frame:SetClampedToScreen(true)
+  frame:SetScript("OnDragStart", function(frame)
+    frame:StartMoving()
+  end)
+  frame:SetScript("OnDragStop", function(frame)
+    frame:StopMovingOrSizing()
+  end)
+  kashi_env = {}
+  kashi_env.main_frame = frame
+  --kashi_env.debug_frame = CreateFrame("ScrollingMessageFrame")
+  --kashi_env.debug_frame:SetAllPoints()
+  --kashi_env.debug_frame:SetPoint("CENTER",0,0)
+  --kashi_env.debug_frame:SetWidth(50)
+  --kashi_env.debug_frame:SetHeight(50)
+  --kashi_env.debug_frame:SetMaxLines(8)
 
-	frame:SetFrameStrata("BACKGROUND")
-	frame:SetWidth(250)
-	frame:SetHeight(100)
+  frame:SetFrameStrata("BACKGROUND")
+  frame:SetWidth(250)
+  frame:SetHeight(100)
 
-	local t = frame:CreateTexture(nil,"BACKGROUND")
-	local foo = "Interface\\DialogFrame\\UI-DialogBox-Background"
-	--foo = "Interface\\WorldMap\\Stormwind City\\Stormwind City1.blp"
-	t:SetTexture(foo)
-	t:SetAllPoints(frame)
-	frame.texture = t
-	
+  local t = frame:CreateTexture(nil,"BACKGROUND")
+  local foo = "Interface\\DialogFrame\\UI-DialogBox-Background"
+  --foo = "Interface\\WorldMap\\Stormwind City\\Stormwind City1.blp"
+  t:SetTexture(foo)
+  t:SetAllPoints(frame)
+  frame.texture = t
 
-	local font_string = frame:CreateFontString('my_output',"OVERLAY", "GameFontNormal")
-	--font_string:SetFont("Fonts\\FRIZQT__.TTF", 11, "OUTLINE, MONOCHROME") 
-	font_string:SetAllPoints(frame)
-	font_string:SetText('ready for survey')
-	kashi_env.fs = font_string
+  local font_string = frame:CreateFontString('my_output',"OVERLAY", "GameFontNormal")
+  --font_string:SetFont("Fonts\\FRIZQT__.TTF", 11, "OUTLINE, MONOCHROME") 
+  font_string:SetAllPoints(frame)
+  font_string:SetText('ready for survey')
+  kashi_env.fs = font_string
 
-	frame:SetPoint("CENTER",0,0)
-	frame:EnableMouse()
-	frame:SetResizable(true)
-	make_resizeable(frame)
-	center_spot(frame)
-	frame:Show()
-	--kashi_env.debug_frame:Show()
-	frame:SetScript("OnEvent",eventHandler)
-	--kashi_env.debug_frame:AddMessage('foo')
+  frame:SetPoint("CENTER",0,0)
+  frame:EnableMouse(true)
+  frame:SetResizable(true)
+  make_resizeable(frame)
+  center_spot(frame)
+  frame:Show()
+  --kashi_env.debug_frame:Show()
+  frame:SetScript("OnEvent",eventHandler)
+  --kashi_env.debug_frame:AddMessage('foo')
 
+  print("kashi init end")
 end
 kashi_init()
 print("kashikoi's addon done loading")

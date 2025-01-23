@@ -4,6 +4,5 @@
 ## SavedVariables: kashi_data
 ## Version: 0.03
 ## OptionalDeps: TomTom
-astrolabe\Load.xml
 core_functions.lua
 kashikoi.lua
